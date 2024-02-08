@@ -1,9 +1,10 @@
 import jax
 from jax import random
+# flake8: noqa
 
 
 class PIDController:
-    def __init__(self, kp, ki, kd, set_point, timesteps):
+    def __init__(self, kp, ki, kd, set_point, timesteps, noise_range=0.01):
         self.kp = kp
         self.ki = ki
         self.kd = kd
@@ -11,6 +12,7 @@ class PIDController:
         self.integral = 0
         self.prev_error = 0
         self.num_timesteps = timesteps
+        self.noise_range = noise_range
 
     def update(self, current_value):
         """Update the PID controller using JAX."""
@@ -25,14 +27,12 @@ class PIDController:
     def make_loss_function(self, key, controller=None, plant=None):
         def pid_loss(kp, ki, kd, set_point, initial_height, num_timesteps, key):
             pid = PIDController(kp, ki, kd, set_point, num_timesteps)
-            # pid = PIDController(kp, ki, kd, set_point)
             plant.reset()
-            # bathtub = BathtubPlant(initial_height, A, C, g)
             total_error = 0.0
 
             for _ in range(num_timesteps):
                 key, subkey = random.split(key)
-                D = random.uniform(subkey, (), minval=-0.01, maxval=0.01)  # Random disturbance/noise
+                D = random.uniform(subkey, (), minval=-self.noise_range, maxval=self.noise_range)  # Random disturbance/noise
                 current_height = plant.get_state()
                 U = pid.update(current_height)
                 plant.update_state(U, D)
