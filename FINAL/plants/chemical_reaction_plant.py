@@ -7,8 +7,8 @@ class ChemicalReactionPlant:
     def get_state(self):
         return self.product_concentration
 
-    def update_state(self, reactant_feed, dt):
-        rate_of_reaction = self.k * reactant_feed
+    def update_state(self, reactant_feed, D, dt=1.0):
+        rate_of_reaction = self.k * (reactant_feed + D)
         self.product_concentration += rate_of_reaction * dt - self.product_concentration * dt
         return self.product_concentration
 

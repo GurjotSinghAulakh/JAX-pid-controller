@@ -13,6 +13,7 @@ class CournotCompetition:
 
     def get_state(self):
         total_production = self.q1 + self.q2
+        print(total_production)
         price = self.p_max - total_production
         profit = self.q1 * price - (self.q1 * self.marginal_cost)
         return profit

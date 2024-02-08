@@ -30,8 +30,10 @@ class PIDController:
             plant.reset()
             total_error = 0.0
 
-            for _ in range(num_timesteps):
-                key, subkey = random.split(key)
+            for ts in range(num_timesteps):
+                #make new key
+                subkey = random.PRNGKey(ts)
+                # key, subkey = random.split(key)
                 D = random.uniform(subkey, (), minval=-self.noise_range, maxval=self.noise_range)  # Random disturbance/noise
                 current_state = plant.get_state()
                 U = pid.update(current_state)

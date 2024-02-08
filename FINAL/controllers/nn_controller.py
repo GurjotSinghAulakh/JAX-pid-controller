@@ -43,8 +43,9 @@ class NNController:
 
     def nn_loss(self, params, controller, plant, set_point, num_timesteps, epoch_key, pid_errors):
         total_loss = 0.0
-        for _ in range(num_timesteps):
-            _, subkey = random.split(epoch_key)
+        for ts in range(num_timesteps):
+            subkey = random.PRNGKey(ts)
+            # _, subkey = random.split(epoch_key)
             D = random.uniform(subkey, (), minval=-self.noise_range, maxval=self.noise_range)  # Random disturbance/noise
 
             current_state = plant.get_state()
