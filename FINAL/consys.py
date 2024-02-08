@@ -21,11 +21,20 @@ class CONSYS:
 
     def train(self):
         mse_loss = []
+        kp_vals, ki_vals, kd_vals = [], [], []
         for epoch in range(self.num_epochs):
-            loss = self.run_inner(epoch)
-            mse_loss.append(loss)
+            rets = self.run_inner(epoch)
+            if isinstance(rets, tuple):
+                kp_vals.append(rets[1])
+                ki_vals.append(rets[2])
+                kd_vals.append(rets[3])
+                rets = rets[0]
 
-            print(f"Epoch {epoch}, Loss: {loss}")
+            mse_loss.append(rets)
+
+            print(f"Epoch {epoch}, Loss: {rets}")
+        if kp_vals:
+            return (mse_loss, kp_vals, ki_vals, kd_vals)
         return mse_loss
 
     def inner_nn(self, epoch):
@@ -78,4 +87,4 @@ class CONSYS:
             self.ki,
             self.kd,
         )
-        return mse
+        return (mse, self.kp, self.ki, self.kd)

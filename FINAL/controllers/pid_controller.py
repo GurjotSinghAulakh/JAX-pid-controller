@@ -33,10 +33,10 @@ class PIDController:
             for _ in range(num_timesteps):
                 key, subkey = random.split(key)
                 D = random.uniform(subkey, (), minval=-self.noise_range, maxval=self.noise_range)  # Random disturbance/noise
-                current_height = plant.get_state()
-                U = pid.update(current_height)
+                current_state = plant.get_state()
+                U = pid.update(current_state)
                 plant.update_state(U, D)
-                error = set_point - current_height
+                error = set_point - current_state
                 total_error += error**2
 
             mse = total_error / num_timesteps
@@ -53,7 +53,6 @@ class PIDController:
         grad_jit = jax.jit(grad_loss_fn)
         self.loss_fn = loss_fn
         self.grad_jit = grad_jit
-
 
     def reset(self):
         self.integral = 0

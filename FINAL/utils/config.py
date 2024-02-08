@@ -8,9 +8,9 @@ from jax.nn import relu, tanh, sigmoid
 
 
 NUM_EPOCHS = 1000  # Number of training epochs
-NUM_TIMESTEPS = 10  # Number of timesteps per epoch
-LEARNING_RATE = 0.01  # Learning rate for the optimizer
-SIZES = [3, 20, 1]  # Neural network sizes (input layer, hidden layer, output layer)
+NUM_TIMESTEPS = 100  # Number of timesteps per epoch
+LEARNING_RATE = 0.1  # Learning rate for the optimizer
+SIZES = [3, 15, 1]  # Neural network sizes (input layer, hidden layer, output layer)
 NOISE_RANGE = 0.01
 
 # Random seed for reproducibility
@@ -24,7 +24,7 @@ PID_KD = 0.01  # Derivative gain
 
 # For NNController
 KEY = random.PRNGKey(SEED)
-ACTIVATION_FUNC = sigmoid
+ACTIVATION_FUNC = relu
 INIT_RANGE_MIN = 0.0
 INIT_RANGE_MAX = 1.0
 
@@ -46,7 +46,7 @@ REACTION_RATE_CONSTANT = 0.1
 
 
 # PLANT = BathtubPlant(initial_level=INITIAL_WATER_LEVEL, area=A, drain_area=C, g=G)
-PLANT = CournotCompetition(initial_production=INITIAL_PRODUCTION, p_max=P_MAX, rival_production=RIVAL_PRODUCTION, marginal_cost=MARGINAL_COST)
-# PLANT = ChemicalReactionPlant(initial_concentration=INITIAL_CONCENTRATION, reaction_rate_constant=REACTION_RATE_CONSTANT)
+# PLANT = CournotCompetition(initial_production=INITIAL_PRODUCTION, p_max=P_MAX, rival_production=RIVAL_PRODUCTION, marginal_cost=MARGINAL_COST)
+PLANT = ChemicalReactionPlant(initial_concentration=INITIAL_CONCENTRATION, reaction_rate_constant=REACTION_RATE_CONSTANT)
 # CONTROLLER = NNController(sizes=SIZES, key=KEY, activation_func=ACTIVATION_FUNC, init_range_min=INIT_RANGE_MIN, init_range_max=INIT_RANGE_MAX, noise_range=NOISE_RANGE)
 CONTROLLER = PIDController(kp=PID_KP, ki=PID_KI, kd=PID_KD, timesteps=NUM_TIMESTEPS, set_point=PID_SET_POINT, noise_range=NOISE_RANGE)
