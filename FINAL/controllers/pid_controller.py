@@ -17,6 +17,7 @@ class PIDController:
     def update(self, current_value):
         """Update the PID controller using JAX."""
         error = self.set_point - current_value
+        # print(f"error: {error}")
         P = self.kp * error
         self.integral += error
         derivative = (error - self.prev_error)
@@ -31,9 +32,7 @@ class PIDController:
             total_error = 0.0
 
             for ts in range(num_timesteps):
-                #make new key
                 subkey = random.PRNGKey(ts)
-                # key, subkey = random.split(key)
                 D = random.uniform(subkey, (), minval=-self.noise_range, maxval=self.noise_range)  # Random disturbance/noise
                 current_state = plant.get_state()
                 U = pid.update(current_state)
@@ -49,7 +48,7 @@ class PIDController:
                 return pid_loss(kp, ki, kd, set_point, initial_height, num_timesteps, key)
             return loss_fn
 
-        loss_fn = make_loss_function(self.set_point, 0.0, self.num_timesteps, key)
+        loss_fn = make_loss_function(self.set_point, self.set_point, self.num_timesteps, key)
 
         grad_loss_fn = jax.grad(loss_fn, argnums=[0, 1, 2])
         grad_jit = jax.jit(grad_loss_fn)

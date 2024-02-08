@@ -13,14 +13,14 @@ class CournotCompetition:
 
     def get_state(self):
         total_production = self.q1 + self.q2
-        print(total_production)
         price = self.p_max - total_production
         profit = self.q1 * price - (self.q1 * self.marginal_cost)
         return profit
 
     def update_state(self, control_signal, D):
-        self.q2 = self.q2 + D
-        self.q1 += control_signal
+        self.q2 = self.q2
+        self.q1 += control_signal * D
+        return self.q1
 
     def reset(self):
         self.q1 = jnp.maximum(self.initial_value, 0)
