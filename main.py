@@ -1,59 +1,53 @@
 import matplotlib.pyplot as plt
-from consys import ConSys
-from pid_controller import PIDController
-from bathtub import BathtubPlant
+from utils.config import PLANT, CONTROLLER, NUM_EPOCHS, LEARNING_RATE, NUM_TIMESTEPS 
+from consys import CONSYS
+
 
 def main():
-    pid = PIDController(kp=1.0, ki=0.0, kd=0.1)
+    plant = PLANT
+    controller = CONTROLLER
+    consys = CONSYS(
+        plant=plant,
+        controller=controller,
+        num_epochs=NUM_EPOCHS,
+        lr=LEARNING_RATE,
+        num_timesteps=NUM_TIMESTEPS
+    )
+    rets = consys.train()
+    if isinstance(rets, tuple):
+        mse_loss, kp_vals, ki_vals, kd_vals = rets
 
-    area = 1.0  # Cross-sectional area of the bathtub
-    drain_area = 0.01  # Cross-sectional area of the drain
-    initial_water_level = 10.0  # Initial water height in the bathtub
-    gravitational_constant = 9.8  # Gravitational constant
+        # Plot for MSE Loss
+        plt.figure(figsize=(10, 5))  # Optional: Adjust figure size
+        plt.plot(range(NUM_EPOCHS), mse_loss, label='MSE', color='blue')
+        plt.xlabel('Epoch')
+        plt.ylabel('MSE Loss')
+        plt.title('MSE Loss Over Epochs')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
 
-    # Creating an instance of BathtubPlant
-    bathtub = BathtubPlant(initial_water_level, area, drain_area, gravitational_constant)
+        # Plot for KP, KI, KD gains
+        plt.figure(figsize=(10, 5))  # Optional: Adjust figure size
+        plt.plot(range(NUM_EPOCHS), kp_vals, label='KP', color='red')
+        plt.plot(range(NUM_EPOCHS), ki_vals, label='KI', color='green')
+        plt.plot(range(NUM_EPOCHS), kd_vals, label='KD', color='orange')
+        plt.xlabel('Epoch')
+        plt.ylabel('PID Gains Value')
+        plt.title('PID Gains (KP, KI, KD) Over Epochs')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+        return
 
-    # Adding a bathtub to the system
-    system = ConSys(controller=pid, plant=bathtub)
-
-    setpoint = 10  # Desired water level
-    total_time = 100  # Total time for the simulation
-
-    water_levels, mse_values, kp_values, ki_values, kd_values = system.run(setpoint, total_time)
-
-    # Plotting the results
-    plt.figure(figsize=(18, 6))
-
-    # Plot 1: Water Level
-    plt.subplot(1, 3, 1)
-    plt.plot(water_levels, label='Water Level')
-    plt.axhline(y=setpoint, color='r', linestyle='--', label='Setpoint')
-    plt.xlabel('Time')
-    plt.ylabel('Water Level')
-    plt.title('Bathtub Water Level Control')
+    plt.plot(range(NUM_EPOCHS), rets, label='MSE', color='blue')
+    plt.xlabel('Epoch')
+    plt.ylabel('MSE Value')
+    plt.title('MSE Over Epochs')
     plt.legend()
-
-    # Plot 2: PID Parameters
-    plt.subplot(1, 3, 2)
-    plt.plot(kp_values, label='Kp')
-    plt.plot(ki_values, label='Ki')
-    plt.plot(kd_values, label='Kd')
-    plt.xlabel('Time')
-    plt.ylabel('PID Parameters')
-    plt.title('PID Parameter Values Over Time')
-    plt.legend()
-
-    # Plot 3: MSE
-    plt.subplot(1, 3, 3)
-    plt.plot(mse_values, label='MSE', color='blue')
-    plt.xlabel('Time')
-    plt.ylabel('Mean Squared Error')
-    plt.title('Learning Progression (MSE)')
-    plt.legend()
-
-    plt.tight_layout()
+    plt.grid(True)
     plt.show()
+
 
 if __name__ == '__main__':
     main()

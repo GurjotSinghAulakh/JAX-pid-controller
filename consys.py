@@ -1,50 +1,90 @@
-import matplotlib.pyplot as plt
-import jax.numpy as jnp
 import jax
+import jax.numpy as jnp
+from jax import random
+import optax
+from utils.pid_error_calculator import PIDErrorCalculator
+from controllers.nn_controller import NNController
+from controllers.pid_controller import PIDController
+from utils.config import PID_KD, PID_KI, PID_KP
 
-class consys:
-    def __init__(self, controller, plant):
-        self.controller = controller
+class CONSYS:
+    def __init__(self, plant, controller, num_epochs, lr, num_timesteps):
         self.plant = plant
-        self.k_values = []
-        self.mse_values = []
+        self.controller = controller
+        self.num_epochs = num_epochs
+        self.lr = lr
+        self.num_timesteps = num_timesteps
+        if isinstance(self.controller, NNController):
+            self.run_inner = self.inner_nn
+        elif isinstance(self.controller, PIDController):
+            self.run_inner = self.inner_pid
 
-    def generate_noise(self):
-        self.key, subkey = jax.random.split(self.key)
-        return jax.random.uniform(subkey, minval=self.noise_range[0], maxval=self.noise_range[1])
+    def train(self):
+        mse_loss = []
+        kp_vals, ki_vals, kd_vals = [], [], []
+        for epoch in range(self.num_epochs):
+            rets = self.run_inner(epoch)
+            if isinstance(rets, tuple):
+                kp_vals.append(rets[1])
+                ki_vals.append(rets[2])
+                kd_vals.append(rets[3])
+                rets = rets[0]
 
+            mse_loss.append(rets)
 
-    def control_pid(self):
-        # Control the PID controller using the bathtub class
-        while True:
-            error = self.bathtub.get_error()
-            control_signal = self.pid.calculate_control_signal(error)
-            self.bathtub.apply_control_signal(control_signal)
-            self.k_values.append(self.pid.k)
-            self.mse_values.append(self.bathtub.mse)
+            print(f"Epoch {epoch}, Loss: {rets}")
+        if kp_vals:
+            return (mse_loss, kp_vals, ki_vals, kd_vals)
+        return mse_loss
 
-    def plot_k_values(self):
-        plt.plot(self.k_values)
-        plt.xlabel('Iteration')
-        plt.ylabel('K Value')
-        plt.title('K Value Progression')
-        plt.show()
+    def inner_nn(self, epoch):
+        optimizer = optax.adam(self.lr)
+        if epoch == 0:
+            network_params = self.controller.network_params
+            opt_state = optimizer.init(network_params)
+        else:
+            network_params = self.network_params
+            opt_state = self.opt_state
+        self.plant.reset()
 
-    def plot_mse_values(self):
-        plt.plot(self.mse_values)
-        plt.xlabel('Iteration')
-        plt.ylabel('Mean Squared Error (MSE)')
-        plt.title('MSE Progression')
-        plt.show()
+        epoch_key = random.PRNGKey(epoch)
+        pid_errors = PIDErrorCalculator(set_point=self.plant.initial_value)
+        loss, network_params, opt_state = self.controller.step(
+            opt_state,
+            network_params,
+            self.controller,
+            self.plant,
+            self.plant.initial_value,
+            self.num_timesteps,
+            epoch_key,
+            optimizer,
+            pid_errors
+        )
+        self.network_params = network_params
+        self.opt_state = opt_state
+        return loss
 
-# Create an instance of the consys class
-system = consys()
+    def inner_pid(self, epoch):
+        if epoch == 0:
+            self.controller.make_loss_function(
+                key=random.PRNGKey(epoch),
+                plant=self.plant,
+            )
+            self.kp = PID_KP
+            self.ki = PID_KI
+            self.kd = PID_KD
 
-# Control the PID controller and collect data
-system.control_pid()
-
-# Plot the K values progression
-system.plot_k_values()
-
-# Plot the MSE progression
-system.plot_mse_values()
+        grads = self.controller.grad_jit(
+            self.kp,
+            self.ki,
+            self.kd,
+        )
+        self.kp -= self.lr * grads[0]
+        self.ki -= self.lr * grads[1]
+        self.kd -= self.lr * grads[2]
+        mse = self.controller.loss_fn(
+            self.kp,
+            self.ki,
+            self.kd,
+        )
+        return (mse, self.kp, self.ki, self.kd)
